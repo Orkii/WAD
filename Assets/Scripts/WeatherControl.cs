@@ -1,5 +1,7 @@
 using SimpleJSON;
 using System;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -8,12 +10,12 @@ using Zenject;
 
 
 public class WeatherControl : MonoBehaviour {
-
+    private const string WEATHER_URL = "https://api.weather.gov/gridpoints/TOP/32,81/forecast";
 
     DateTime lastUpdate;
     [Inject] ServerAsk server;
     [Inject] WeatherView weatherView;
-
+    List<long> nowLaodID = new List<long>();
 
     void Start() {
         
@@ -22,70 +24,40 @@ public class WeatherControl : MonoBehaviour {
     
     void Update() {
         if (DateTime.Now - lastUpdate > TimeSpan.FromSeconds(5)) {
-
+            lastUpdate = DateTime.Now;
+            weatherChange();
         }    
     }
-
-
-    public void weatherChange() {
+    public async void weatherChange() {
         Debug.Log("weatherChange 0");
-        server.weatherGet(onWeatherLoaded, onWeatherStatus);
+        nowLaodID.Add(server.JSONNodeGet(WEATHER_URL, onWeatherLoaded, onWeatherStatus));
         Debug.Log("weatherChange 1");
     }
-
-
-
-
-    void onWeatherLoaded(Loadable loadable) {
-
-        Debug.Log("onWeatherLoaded 0");
-
-        if (loadable == null) return;
-        if (loadable.status != Loadable.LOAD_STATUS.OK) return;
-
-        Debug.Log("Result = " + loadable.response);
-
-        
-        JSONNode node = JSON.Parse(loadable.response.text);
-
+    void onWeatherLoaded(JSONNode node) {
         if (Utils.isNull(node)) { errorOccurredWhileLoad(); return; }
         JSONNode currentWeather = extractWeatherNode(node);
         if (Utils.isNull(currentWeather)) { errorOccurredWhileLoad(); return; }
         string imagePath = extractImagePath(currentWeather);
         if (Utils.isNull(imagePath)) { errorOccurredWhileLoad(); return; }
         weatherView.setText(makeBeautifulText(extractDegrees(currentWeather)));
-        server.imageGet(imagePath, onImageLoaded, onWeatherStatus);
-
-        
+        weatherView.removeImage();
+        nowLaodID.Add(server.texture2DGet(imagePath, onImageLoaded, onWeatherStatus)); 
     }
-
-    void onImageLoaded(Loadable loadable) {
-        if (loadable == null) return;
-        if (loadable.status != Loadable.LOAD_STATUS.OK) return;
-
-        Debug.Log("isDone = " + loadable.response.isDone);
-        
-        Texture2D texture = (loadable.response as DownloadHandlerTexture).texture;
+    void onImageLoaded(Texture2D texture) {
         if (Utils.isNull(texture)) { errorOccurredWhileLoad(); return; }
         weatherView.setImage(texture);
-
     }
-
     void onWeatherStatus(string loadable) {
         //Debug.Log("Status = " + loadable);
     }
-
-    void onWeatherImage(string loadable) {
-
-    }
-
     private string extractImagePath(JSONNode node) {
-        return node["icon"].ToString();
+        
+        return Utils.removeQuotationMarks(node["icon"].ToString());
     }
     private string extractDegrees(JSONNode node) {
         string deg = node["temperature"].ToString();
         if (Utils.isNull(deg)) return Utils.NULL_STR;
-        string tUnit = node["temperatureUnit"].ToString();
+        string tUnit = Utils.removeQuotationMarks(node["temperatureUnit"].ToString());
         if (Utils.isNull(tUnit)) return Utils.NULL_STR;
         return deg + tUnit;
     }
@@ -100,6 +72,18 @@ public class WeatherControl : MonoBehaviour {
     private void errorOccurredWhileLoad() {
         Debug.LogError("errorOccurredWhileLoad");
     }
+
+    void OnDisable() {
+        foreach (long a in nowLaodID) {
+            server.stopLoad(a);
+        }
+    }
+
+    void OnEnable() {
+        lastUpdate = DateTime.Now;
+        weatherChange();
+    }
+
 }
 
 

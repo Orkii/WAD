@@ -13,5 +13,11 @@ static class Utils{
         }
         return (a == null);
     }
+
+
+    public static string removeQuotationMarks(string str) {
+        return str.Trim('\"');
+    }
+
     public static string NULL_STR = "null";
 }
