@@ -43,10 +43,10 @@ public class WeatherControl : MonoBehaviour {
         if (loadable == null) return;
         if (loadable.status != Loadable.LOAD_STATUS.OK) return;
 
-        Debug.Log("Result = " + loadable.handler);
+        Debug.Log("Result = " + loadable.response);
 
         
-        JSONNode node = JSON.Parse(loadable.handler.text);
+        JSONNode node = JSON.Parse(loadable.response.text);
 
         if (Utils.isNull(node)) { errorOccurredWhileLoad(); return; }
         JSONNode currentWeather = extractWeatherNode(node);
@@ -63,9 +63,9 @@ public class WeatherControl : MonoBehaviour {
         if (loadable == null) return;
         if (loadable.status != Loadable.LOAD_STATUS.OK) return;
 
-        Debug.Log("isDone = " + loadable.handler.isDone);
+        Debug.Log("isDone = " + loadable.response.isDone);
         
-        Texture2D texture = (loadable.handler as DownloadHandlerTexture).texture;
+        Texture2D texture = (loadable.response as DownloadHandlerTexture).texture;
         if (Utils.isNull(texture)) { errorOccurredWhileLoad(); return; }
         weatherView.setImage(texture);
 

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using UnityEngine;
+using UnityEngine.Networking;
 using static Loadable;
 public class ServerAsk : MonoBehaviour {
 
@@ -13,9 +14,6 @@ public class ServerAsk : MonoBehaviour {
     [SerializeField] List<LoadProcess> list;
     LoadProcess currentLoad { get { return toLoad.Count == 0 ? null : toLoad.Peek(); } }
 
-    HttpClient httpClient = new HttpClient();
-
-
     private void Start() {
         Debug.Log("ServerAsk is alive!");
         
@@ -23,24 +21,24 @@ public class ServerAsk : MonoBehaviour {
     private void FixedUpdate() {
         list = new List<LoadProcess>(toLoad);
         if (currentLoad == null) return;
-        if (currentLoad.response == null) return;
+        if (currentLoad.request == null) return;
 
-        if (currentLoad.response.isNetworkError) {
-            Debug.LogWarning("Error = " + currentLoad.response.error);
-            Debug.LogWarning("URL = " + currentLoad.response.url);
+        if (currentLoad.request.isNetworkError) {
+            Debug.LogWarning("Error = " + currentLoad.request.error);
+            Debug.LogWarning("URL = " + currentLoad.request.url);
             errorStop();
             return;
         }
 
-        if (currentLoad.response.) {
-            if (currentLoad.request.downloadHandler.isDone) {
-                Debug.Log("currentLoad = " + currentLoad);
-                loadFinish(currentLoad.request);
-            }
-        }
-        else{
-            currentLoad.OnLoadStatusInvoke(currentLoad.request.downloadedBytes.ToString());
-        }
+        //if (currentLoad.request) {
+        //    if (currentLoad.request.downloadHandler.isDone) {
+        //        Debug.Log("currentLoad = " + currentLoad);
+        //        loadFinish(currentLoad.request);
+        //    }
+        //}
+        //else{
+        //    currentLoad.OnLoadStatusInvoke(currentLoad.request.downloadedBytes.ToString());
+        //}
         
     }
 
@@ -52,9 +50,10 @@ public class ServerAsk : MonoBehaviour {
         loadProcess.OnLoadStatus += statusHandler;
         Debug.Log("ImPath = " + imagePath);
         Uri requestURI = new Uri(imagePath);
+        UnityWebRequestTexture.GetTexture(requestURI);
         //loadProcess.request = UnityWebRequestTexture.GetTexture(requestURI);
         //loadProcess.request = UnityWebRequestTexture.GetTexture(imagePath);
-        HttpResponseMessage response = await httpClient.GetAsync(requestURI);
+        
         
         //loadProcess.request = UnityWebRequestTexture.GetTexture("https://api.weather.gov/icons/land/night/wind_bkn?size=medium");
 
@@ -108,9 +107,9 @@ public class ServerAsk : MonoBehaviour {
 
 public class Loadable {
     public LOAD_STATUS status;
-    public HttpResponseMessage response;
+    public DownloadHandler response;
 
-    public Loadable(LOAD_STATUS status, HttpResponseMessage response) {
+    public Loadable(LOAD_STATUS status, DownloadHandler response) {
         this.status = status;
         this.response = response;
     }
@@ -124,7 +123,7 @@ public class Loadable {
 [Serializable]
 public class LoadProcess {
     //public Type type;
-    public HttpResponseMessage response;
+    public UnityWebRequest request;
     public event Action<Loadable> OnLoadFinish;
     public event Action<string> OnLoadStatus;
     public void OnLoadFinishInvoke(Loadable loadable) {
