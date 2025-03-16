@@ -95,7 +95,7 @@ public class DogsControl : MonoBehaviour {
 
 
     private void errorOccurredWhileLoad() {
-        Debug.LogError("errorOccurredWhileLoad");
+        Debug.LogWarning("errorOccurredWhileLoad");
     }
 
     private string extractDogFacts(JSONNode node) {
@@ -105,13 +105,13 @@ public class DogsControl : MonoBehaviour {
 
 
         res += "\nМаксимальная продолжительность жизни:" + node["attributes"]["life"]["max"];
-        res += "\nСредняя продолжительность жизни:" + node["attributes"]["life"]["min"];
+        res += "\nМинимальная продолжительность жизни:" + node["attributes"]["life"]["min"];
 
         res += "\nМаксимальный вес самца:" + node["attributes"]["male_weight"]["max"];
-        res += "\nСредний вес самца:" + node["attributes"]["male_weight"]["min"];
+        res += "\nМинимальный вес самца:" + node["attributes"]["male_weight"]["min"];
 
         res += "\nМаксимальынй вес самки:" + node["attributes"]["female_weight"]["max"];
-        res += "\nСредний вес самки:" + node["attributes"]["female_weight"]["min"];
+        res += "\nМинимальный вес самки:" + node["attributes"]["female_weight"]["min"];
 
         JSONNode hypoallergenicNode = node["attributes"]["hypoallergenic"];
         if (hypoallergenicNode.IsNull) { return "null"; }

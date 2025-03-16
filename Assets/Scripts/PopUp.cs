@@ -4,7 +4,7 @@ using UnityEngine;
 public class PopUp : MonoBehaviour {
     [SerializeField] TextMeshProUGUI title;
     [SerializeField] TextMeshProUGUI text;
-    float minSize = 120;
+    float minSize = 150;
 
 
     private void Start() {
