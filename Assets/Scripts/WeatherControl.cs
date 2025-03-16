@@ -14,7 +14,7 @@ public class WeatherControl : MonoBehaviour {
 
     DateTime lastUpdate;
     [Inject] ServerAsk server;
-    [Inject] WeatherView weatherView;
+    [SerializeField] WeatherView weatherView;
     List<long> nowLaodID = new List<long>();
 
     void Start() {
@@ -33,7 +33,8 @@ public class WeatherControl : MonoBehaviour {
         nowLaodID.Add(server.JSONNodeGet(WEATHER_URL, onWeatherLoaded, onWeatherStatus));
         Debug.Log("weatherChange 1");
     }
-    void onWeatherLoaded(JSONNode node) {
+    void onWeatherLoaded(JSONNode node, long id) {
+        nowLaodID.Remove(id);
         if (Utils.isNull(node)) { errorOccurredWhileLoad(); return; }
         JSONNode currentWeather = extractWeatherNode(node);
         if (Utils.isNull(currentWeather)) { errorOccurredWhileLoad(); return; }
@@ -43,11 +44,12 @@ public class WeatherControl : MonoBehaviour {
         weatherView.removeImage();
         nowLaodID.Add(server.texture2DGet(imagePath, onImageLoaded, onWeatherStatus)); 
     }
-    void onImageLoaded(Texture2D texture) {
+    void onImageLoaded(Texture2D texture, long id) {
+        nowLaodID.Remove(id);
         if (Utils.isNull(texture)) { errorOccurredWhileLoad(); return; }
         weatherView.setImage(texture);
     }
-    void onWeatherStatus(string loadable) {
+    void onWeatherStatus(string loadable, long id) {
         //Debug.Log("Status = " + loadable);
     }
     private string extractImagePath(JSONNode node) {
@@ -70,13 +72,15 @@ public class WeatherControl : MonoBehaviour {
     }
 
     private void errorOccurredWhileLoad() {
-        Debug.LogError("errorOccurredWhileLoad");
+        Debug.LogWarning("errorOccurredWhileLoad");
     }
 
     void OnDisable() {
         foreach (long a in nowLaodID) {
             server.stopLoad(a);
         }
+        nowLaodID.Clear();
+        weatherView.clear();
     }
 
     void OnEnable() {

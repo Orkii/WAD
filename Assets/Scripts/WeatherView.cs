@@ -30,6 +30,10 @@ public class WeatherView : MonoBehaviour {
         loadImageGO.SetActive(true);
     }
 
+    public void clear() {
+        text.text = "";
+        removeImage();
+    }
     public void setText(string txt) {
         Debug.Log("Set text = " + txt);
         text.text = txt;

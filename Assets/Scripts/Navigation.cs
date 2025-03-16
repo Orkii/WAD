@@ -11,14 +11,14 @@ public class Navigation : MonoBehaviour {
     }
 
     public void dogButton() {
-        dogWindow.open();
         weatherWindow.close();
+        dogWindow.open();
         Debug.Log("Dog pressed");
     }
 
     public void weatherButton() {
-        weatherWindow.open();
         dogWindow.close();
+        weatherWindow.open();
         Debug.Log("Weather pressed");
     }
 }

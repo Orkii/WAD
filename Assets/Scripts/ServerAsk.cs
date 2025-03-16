@@ -30,6 +30,7 @@ public class ServerAsk : MonoBehaviour {
 
 
     public void stopLoad(long id) {
+        Debug.Log("stopLoad");
         foreach (LoadProcess process in toLoad) {
             if (process.id == id) {
                 process.continueLoad = false;
@@ -42,13 +43,14 @@ public class ServerAsk : MonoBehaviour {
     LoadProcess currentLoad { get { return toLoad.Count == 0 ? null : toLoad.Peek(); } }
 
     private void Start() {
-        Debug.Log("ServerAsk is alive!");
+        //Debug.Log("ServerAsk is alive!");
         List<LoadProcess> list = new List<LoadProcess>(toLoad); // serialize toLoad
     }
     private void FixedUpdate() {
         if (currentLoad == null) return;
         if (currentLoad.isLoading == false) {
-            Debug.Log("Start cour 1");
+            //if (currentLoad.continueLoad) == false 
+            //Debug.Log("Start cour 1");
             Debug.Log(toLoad.Count);
             StartCoroutine(currentLoad.Start(onLoadEndCallback));
         }
@@ -58,8 +60,8 @@ public class ServerAsk : MonoBehaviour {
         toLoad.Dequeue();
     }
 
-    public long texture2DGet(string imagePath, Action<Texture2D> loadHandler, Action<string> statusHandler) {
-        Debug.Log("texture2DGet");
+    public long texture2DGet(string imagePath, Action<Texture2D, long> loadHandler, Action<string, long> statusHandler) {
+        //Debug.Log("texture2DGet");
         LoadProcessTexture2D loadProcess = new LoadProcessTexture2D();
         loadProcess.OnLoadStatus += statusHandler;
         loadProcess.OnLoadFinish += loadHandler;
@@ -71,14 +73,13 @@ public class ServerAsk : MonoBehaviour {
     }
 
 
-    public long JSONNodeGet(string path, Action<JSONNode> loadHandler, Action<string> statusHandler) {
+    public long JSONNodeGet(string path, Action<JSONNode, long> loadHandler, Action<string, long> statusHandler) {
         Debug.Log("JSONNodeGet");
         LoadProcessJSONNode loadProcess = new LoadProcessJSONNode();
         loadProcess.OnLoadFinish += loadHandler;
         loadProcess.OnLoadStatus += statusHandler;
         loadProcess.request = UnityWebRequest.Get(path);
         loadProcess.id = getNextID();
-        //UnityWebRequestAsyncOperation a = loadProcess.request.SendWebRequest();
         toLoad.Enqueue(loadProcess);
         return loadProcess.id;
     }
@@ -108,11 +109,13 @@ public abstract class LoadProcess {
     public long id;
 
     public UnityWebRequest request;
-    public event Action<string> OnLoadStatus;
+    public event Action<string, long> OnLoadStatus;
     public bool isLoading = false;
     public bool continueLoad = true;
+    int timeToWait = 100;
+
     public void OnLoadStatusInvoke(string str) {
-        OnLoadStatus.Invoke(str);
+        OnLoadStatus.Invoke(str, id);
     }
     public void OnLoadStatusClear() {
         OnLoadStatus = null;
@@ -123,7 +126,10 @@ public abstract class LoadProcess {
     /// <param name="onExit"></param>
     /// <returns></returns>
     public IEnumerator Start(Action onExit) {
-        if (!continueLoad) yield break;
+        if (!continueLoad) {
+            onExit();
+            yield break;
+        }
         isLoading = true;
         //Debug.Log("Start cour 2");
         UnityWebRequestAsyncOperation operation = request.SendWebRequest();
@@ -135,6 +141,16 @@ public abstract class LoadProcess {
             }
             if (request.isDone) {
                 //Debug.Log("cour 4");
+                while (timeToWait > 0) {// Loading is too fast, slow it down
+                    Thread.Sleep(10);
+                    timeToWait--;
+                    yield return null;
+                }
+                if (!continueLoad) {
+                    errorAccuired();
+                    onExit();
+                    yield break;
+                }
                 dataTransform();
             }
         }
@@ -162,13 +178,15 @@ public abstract class LoadProcess {
     /// <summary>
     /// If smth go wrong, this is being invoked
     /// </summary>
-    protected abstract void errorAccuired();
+    protected virtual void errorAccuired() {
+        isLoading = false;
+    }
 }
 
 public class LoadProcessTexture2D : LoadProcess {
-    public event Action<Texture2D> OnLoadFinish;
+    public event Action<Texture2D, long> OnLoadFinish;
     public void OnLoadFinishInvoke(Texture2D loadable) {
-        OnLoadFinish.Invoke(loadable);
+        OnLoadFinish.Invoke(loadable, id);
     }
     public void OnLoadFinishClear() {
         OnLoadFinish = null;
@@ -184,14 +202,15 @@ public class LoadProcessTexture2D : LoadProcess {
     }
 
     protected override void errorAccuired() {
+        base.errorAccuired();
         OnLoadFinishInvoke(null);
     }
 }
 
 public class LoadProcessJSONNode : LoadProcess {
-    public event Action<JSONNode> OnLoadFinish;
+    public event Action<JSONNode, long> OnLoadFinish;
     public void OnLoadFinishInvoke(JSONNode loadable) {
-        OnLoadFinish.Invoke(loadable);
+        OnLoadFinish.Invoke(loadable, id);
     }
     public void OnLoadFinishClear() {
         OnLoadFinish = null;
@@ -207,6 +226,7 @@ public class LoadProcessJSONNode : LoadProcess {
     }
 
     protected override void errorAccuired() {
+        base.errorAccuired();
         OnLoadFinishInvoke(null);
     }
 }

@@ -23,7 +23,8 @@ public class DogsControl : MonoBehaviour {
 
     
 
-    void onDogLoaded(JSONNode node) {
+    void onDogLoaded(JSONNode node, long id) {
+        nowLaodID.Remove(id);   
         Debug.Log("onDogLoaded");
         if (Utils.isNull(node)) { errorOccurredWhileLoad(); return; }
         List<Dog> dogs = extractDogs(node);
@@ -39,15 +40,29 @@ public class DogsControl : MonoBehaviour {
             dogViewList.addElement(dog);
         }
     }
-
-    private void onDogPressed(Dog dog) {
-        dogViewList.startLoad(dog);
-        server.JSONNodeGet(DOGS_URL + "/" + dog.id, showPopUp, dogFactLoadStatus);
+    private void stopLoadAll() {
+        foreach (long id in nowLaodID) {
+            server.stopLoad(id);
+        }
+        dogViewList.stopLoadAll();
+        nowLaodID.Clear();
     }
-    private void showPopUp(JSONNode node) {
+    private void onDogPressed(Dog dog) {
+        Debug.Log("onDogPressed");
+        if (nowLaodID.Count > 0) stopLoadAll();
+        dogViewList.startLoad(dog);
+        nowLaodID.Add(server.JSONNodeGet(DOGS_URL + "/" + dog.id, showPopUp, dogFactLoadStatus));
+    }
+    private void showPopUp(JSONNode node, long id) {
+        nowLaodID.Remove(id);
         if (Utils.isNull(node)) { errorOccurredWhileLoad(); return; }
+        
+        
 
         Dog dog = extractDog(node["data"]);
+        if (dog == null) { errorOccurredWhileLoad(); return; }
+
+        dogViewList.stopLoad(dog.id);
         string facts = extractDogFacts(node["data"]);
         //if (facts.Contains("null")) return;
 
@@ -60,11 +75,11 @@ public class DogsControl : MonoBehaviour {
         Debug.Log("Fact loaded = " + node.ToString());
     }
     
-    private void dogFactLoadStatus(string status) {
+    private void dogFactLoadStatus(string status, long id) {
 
     }
 
-    void onDogStastus(string node) {
+    void onDogStastus(string node, long id) {
         if (Utils.isNull(node)) { errorOccurredWhileLoad(); return; }
 
     }
@@ -72,6 +87,7 @@ public class DogsControl : MonoBehaviour {
 
     public void dogStart() {
         Debug.Log("dogStart 0");
+        dogViewList.contentIsLoading();
         nowLaodID.Add(server.JSONNodeGet(DOGS_URL, onDogLoaded, onDogStastus));
         Debug.Log("dogStart 1");
     }
@@ -86,7 +102,8 @@ public class DogsControl : MonoBehaviour {
         if (Utils.isNull(node)) { return "null"; }
         string res = "";
         res += "\nОписание:" + node["attributes"]["description"];
-        
+
+
         res += "\nМаксимальная продолжительность жизни:" + node["attributes"]["life"]["max"];
         res += "\nСредняя продолжительность жизни:" + node["attributes"]["life"]["min"];
 
@@ -128,6 +145,8 @@ private List<Dog> extractDogs(JSONNode node) {
         foreach (long a in nowLaodID) {
             server.stopLoad(a);
         }
+        nowLaodID.Clear();
+        dogViewList.clear();
     }
 
     void OnEnable() {

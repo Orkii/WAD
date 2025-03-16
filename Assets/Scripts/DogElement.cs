@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class DogElement : MonoBehaviour {
     [SerializeField] TextMeshProUGUI text;
+    [SerializeField] GameObject loadIcon;
     public Action<Dog> onPress;
     Dog dog;
 
@@ -19,9 +20,9 @@ public class DogElement : MonoBehaviour {
     }
 
     public void startLoad() {
-        gameObject.SetActive(true);
+        loadIcon.SetActive(true);
     }
     public void stopLoad() {
-        gameObject.SetActive(false);
+        loadIcon.SetActive(false);
     }
 }
